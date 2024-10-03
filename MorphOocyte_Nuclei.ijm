@@ -21,7 +21,7 @@ imgtif= getFileList(inputDir);
 
 // create a file named "results.csv" and write headers in it
 fileResults = File.open(resultDir + "results.csv");
-print(fileResults,"Image - noyau , Circ n-3 , Circ , Circ n+3 , Aire n-3 , Aire , Aire n+3 , Perim n-3 , Perim , Perim n+3 , Slice n-3 , Slice , Slice n+3 , Rayon n-3 , Rayon , Rayon n+3\n");
+print(fileResults,"Image - noyau , Circ n-3 , Circ , Circ n+3 , Aire n-3 , Aire , Aire n+3 , Perim n-3 , Perim , Perim n+3 , Slice n-3 , Slice , Slice n+3 , Radius n-3 , Rayon , Radius n+3\n");
 
 // Loop through all files with .TIF extension
 for (i = 0; i < imgtif.length; i++) {
