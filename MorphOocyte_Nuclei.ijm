@@ -4,7 +4,7 @@
 /////////////////////////////////////////////////////////////////
 
 // Hide images during macro execution
-setBatchMode(false);
+setBatchMode(true);
 
 // Ask for the images directory
 inputDir = getDirectory("Please select a directory containing images to analyze");
@@ -58,7 +58,7 @@ for (i = 0; i < inputFiles.length; i++) {
 		Stack.setXUnit(voxUnit);
 		run("Properties...", "pixel_width="+voxWidth+" pixel_height="+voxHeight+" voxel_depth="+voxDepth);
 		rename("watershed");
-		waitForUser;
+		
 		
 		// Initialize 3D Manager
 		run("3D Manager");
@@ -85,6 +85,8 @@ for (i = 0; i < inputFiles.length; i++) {
 				
 				// Do a manual thresholding based on object label
 				selectImage("watershed");
+				
+
 				run("Manual Threshold...", "min="+labels[j]+" max="+labels[j]);
 				
 				// Create 3 ROIs according to the z-centroid of the object (z-3, z, z+3)
