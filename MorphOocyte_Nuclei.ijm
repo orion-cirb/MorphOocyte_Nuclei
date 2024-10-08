@@ -1,162 +1,126 @@
 /////////////////////////////////////////////////////////////////
 //      Authors Thomas Caille & Héloïse Monnet @ ORION-CIRB    //
-//	            https://github.com/orion-cirb/CLDN2            //
+//       https://github.com/orion-cirb/MorphOocyte_Nuclei      //
 /////////////////////////////////////////////////////////////////
 
-
 // Hide images during macro execution
-setBatchMode(true);
-// Ask for the image repertory
-inputDir =getDirectory("Merci d'indiquer le dossier contenant vos images");
+setBatchMode(false);
 
+// Ask for the images directory
+inputDir = getDirectory("Please select a directory containing images to analyze");
 
-// Create result directory
-resultDir = inputDir + "Results"+ File.separator();
-
+// Create results directory
+getDateAndTime(year, month, dayOfWeek, dayOfMonth, hour, minute, second, msec);
+resultDir = inputDir + "Results_" + year + "-" + month + "-" + (dayOfMonth+1) + "_" + hour + "-" + minute + "-" + second + File.separator();
 if (!File.isDirectory(resultDir)) {
 	File.makeDirectory(resultDir);
 }
-// Get all files in the input directory
-imgtif= getFileList(inputDir);
 
-// create a file named "results.csv" and write headers in it
+// Get all files in the input directory
+inputFiles = getFileList(inputDir);
+
+// Create a file named "results.csv" and write headers in it
 fileResults = File.open(resultDir + "results.csv");
-print(fileResults,"Image - noyau , Circ n-3 , Circ , Circ n+3 , Aire n-3 , Aire , Aire n+3 , Perim n-3 , Perim , Perim n+3 , Slice n-3 , Slice , Slice n+3 , Radius n-3 , Rayon , Radius n+3\n");
+print(fileResults, "Image name, Nucleus ID, Slice, ROI name, Area (µm2), Perimeter (µm), Circularity, Feret max diameter (µm), Feret min diameter (µm)\n");
 
 // Loop through all files with .TIF extension
-for (i = 0; i < imgtif.length; i++) {
-    if (endsWith(imgtif[i], ".tif")) {
-    	img= File.getNameWithoutExtension(inputDir + imgtif[i]);
-    	// Create result directory based on image name
-    	resultDirImg = resultDir + img + File.separator();
-    	if (!File.isDirectory(resultDirImg)) {
-			File.makeDirectory(resultDirImg);
-		}
-		// open image
-    	open(inputDir + imgtif[i]);
-    	print("ouvre l'image : " + img);
-    	rename("raw_image");
+for (i = 0; i < inputFiles.length; i++) {
+    if (endsWith(inputFiles[i], ".tif")) {
+    	//print("\n - Analyzing image " + inputFiles[i] + " -");
     	
-    	// Compute image background noise as the median intensity of the stack sum projection 
+		// Open image
+    	open(inputDir + inputFiles[i]);
+    	getVoxelSize(voxWidth, voxHeight, voxDepth, voxUnit);
+    	rename("raw_image");
+
+    	// Compute background noise as the intensity (mean + stdDev) of the stack
 		run("Z Project...", "projection=[Sum Slices]");
-		run("Set Measurements...", "area mean standard median redirect=None decimal=0");
+		run("Set Measurements...", "mean standard redirect=None decimal=0");
 		List.setMeasurements;
 		close("SUM_raw_image");
-		stdDev=List.getValue("StdDev");
-		mean=List.getValue("Mean");
-		backNoise = (stdDev + mean) /nSlices;
-		// Remove background noise from the stack average projection to normalize intensity measurements
-		run("Subtract...", "value=" + backNoise +" stack");
-		run("Clear Results");
+		mean = List.getValue("Mean");
+		stdDev = List.getValue("StdDev");
+		bgNoise = (mean + stdDev) / nSlices;
+		List.clear();
+		// Remove background noise
+		run("Subtract...", "value=" + bgNoise +" stack");
 		
-		// Median filter to enhance signal of the image
+		// Median filter to smooth signal
 		run("Median...", "radius=1 stack");
-		
-		// Automatic thresholding by Otsu method to segment object
+		// Automatic thresholding using Otsu method to segment object
 		setAutoThreshold("Otsu dark no-reset stack");
 		setOption("BlackBackground", true);
 		run("Convert to Mask", "method=Otsu background=Dark black");
 		// Fill holes to improve segmentation result
 		run("Fill Holes", "stack");
-		
-		// Initialize the 3D Manager before doing some 3D watershed to separate the nucleus
-		run("3D Manager Options", "volume centroid_(unit) centre_of_mass_(pix) centre_of_mass_(unit) distance_between_centers=10 distance_max_contact=1.80 drawing=Contour display");
+		// 3D watershed to separate objects
 		run("3D Watershed Split", "binary=raw_image seeds=Automatic radius=10");
+		Stack.setXUnit(voxUnit);
+		run("Properties...", "pixel_width="+voxWidth+" pixel_height="+voxHeight+" voxel_depth="+voxDepth);
+		rename("watershed");
+		waitForUser;
+		
+		// Initialize 3D Manager
 		run("3D Manager");
 		Ext.Manager3D_Reset();
+		// Load segmentation result into 3D Manager
 		Ext.Manager3D_AddImage();
-		// Measure 3D volume of nucleus allowing us to filter them
+		// Measure objects volume and centroid
+		run("3D Manager Options", "volume centroid_(pix) distance_between_centers=10 distance_max_contact=1.80 drawing=Contour display");
 		Ext.Manager3D_Measure();
+		nbObjs = nResults; labels = newArray(nResults); vols = newArray(nResults); cZs = newArray(nResults);
+		for (j = 0; j < nbObjs; j++) {
+			labels[j] = getResult("Label", j);
+			cZs[j] = Math.round(getResult("CZ (pix)", j));
+			vols[j] = getResult("Vol (unit)", j);
+		}
+		close("MeasureTable");
+		close("Results");
 		
-		Vol=newArray(nResults); Label= newArray(nResults); Centro = newArray(nResults); Centro2 = newArray(nResults);
-		b=nResults;
-		// Loop over each objects found
-		for (j = 0; j <=b ; j++) {
-			Vol[j]=getResult("Vol (unit)", j-1);
-			Label[j]=getResult("Label", j-1);
-			Centro[j]=getResult("CZ (unit)", j-1);
-			
-		}
-			for (k = 1; k < j ; k++){
+		// Loop over each object found with a volume of at least 1000 µm3
+		nucleiCounter = 0;
+		for (j = 0; j < nbObjs; j++) {
+			if (vols[j] > 1000){
+				nucleiCounter++;
 				
-				volume= Vol[k];
-				Centro2=Centro[k];
-				label=abs(Label[k]);
-				// Measure only the parameters of objects with a volume of at least 40,000 pixels
-				if (volume > 40000){
-					selectImage("Split");
-					run("Duplicate...", "duplicate");
-					
-					// Do a manual thresholding based on object label 
-					run("Manual Threshold...", "min="+label+" max="+label+"");
-					run("Set Measurements...", "area perimeter shape feret's stack limit display add redirect=None decimal=0");
-					run("Clear Results");
-					
-					// Create 3 ROI's according to the Centroid of the object (n-3 , n , n+3)
-					// rename ROI's with "the nucleus (1 or 2)" - " the label given by 3D segmentation" - "the slice number"
-					// Compute finals results from the ROI 
-					setSlice(Centro2-3);
-					run("Create Selection");
-					roiManager("Add");
-					
-					if (roiManager("count") <= 3){
-						roiManager("select", 0);
-						roiManager("rename", "1 - "+ label +" - "+ getSliceNumber());
-					} else {
-						roiManager("select", 3);
-						roiManager("rename", "2 - "+ label +" - "+ getSliceNumber());
-					}
-					run("Measure");
-					
-					setSlice(Centro2);
-					run("Create Selection");
-					roiManager("Add");
-					
-					if (roiManager("count") <= 3){
-						roiManager("select", 1);
-						roiManager("rename", "1 - "+ label +" - "+ getSliceNumber());
-					} else {
-						roiManager("select", 4);
-						roiManager("rename", "2 - "+ label +" - "+ getSliceNumber());
-					}
-					run("Measure");
-						
-					setSlice(Centro2+3);
-					run("Create Selection");
-					roiManager("Add");
-					
-					if (roiManager("count") <= 3){
-						roiManager("select", 2);
-						roiManager("rename", "1 - "+ label +" - "+ getSliceNumber());
-					} else {
-						roiManager("select", 5);
-						roiManager("rename", "2 - "+ label +" - "+ getSliceNumber());
-					}
-					run("Measure");
-					
-					// Get results into variables
-					areaSliceNegative = getResult("Area", 0); area = getResult("Area", 1); areaSlicePositive = getResult("Area", 2);
-					circSliceNegative = (getResult("Circ.", 0))*100; circ = (getResult("Circ.", 1))*100; circSlicePositive = (getResult("Circ.", 2))*100;
-					perimSliceNegative = getResult("Perim.", 0); perim =getResult("Perim.", 1); perimSlicePositive = getResult("Perim.", 2);
-					sliceNegative = getResult("Slice", 0); slice = getResult("Slice", 1); slicePositive = getResult("Slice", 2);
-					rayonSliceNegative = (getResult("Feret", 0))/2; rayon = (getResult("Feret", 1))/2; rayonSlicePositive  = (getResult("Feret", 2))/2;
+				// Do a manual thresholding based on object label
+				selectImage("watershed");
+				run("Manual Threshold...", "min="+labels[j]+" max="+labels[j]);
 				
-					// Write into the result.csv file
-					print(fileResults,img +"-"+ label +","+circSliceNegative+","+ circ+","+ circSlicePositive+","+ areaSliceNegative +","+ area +","+ areaSlicePositive +","+ perimSliceNegative +","+ perim +","+ perimSlicePositive +","+ sliceNegative +","+ slice +","+ slicePositive+","+ rayonSliceNegative +","+ rayon +","+ rayonSlicePositive +"\n");
+				// Create 3 ROIs according to the z-centroid of the object (z-3, z, z+3)
+				for(k=-3; k <= 3; k+=3) {
+					slice = cZs[j] + k;
+					setSlice(slice);
+					run("Create Selection");
+					roiManager("Add");
+					roiManager("select", roiManager("count")-1);
+					roiName = Roi.getName;
+					
+					// Compute ROI parameters
+					run("Set Measurements...", "area perimeter shape feret's limit redirect=None decimal=0");
+					List.setMeasurements();
+					area = List.getValue("Area");
+					perim = List.getValue("Perim.");
+					circ = List.getValue("Circ.");
+					maxDiam = List.getValue("Feret");
+					minDiam = List.getValue("MinFeret");
+					List.clear();
+					
+					// Save ROI parameters into the "result.csv" file
+					print(fileResults, inputFiles[i]+","+nucleiCounter+","+slice+","+roiName+","+area+","+perim+","+circ+","+maxDiam+","+minDiam+"\n");
 				}
-				close("Results");	
+			}
 		}
-		// close and save windows
-		Ext.Manager3D_Close();		
-		roiManager("save", resultDirImg + img +".zip");
+		
+		// Save ROIs
+		roiManager("save", resultDir + replace(inputFiles[i], "tif", "zip"));
 		roiManager("reset");
-		saveAs("tif", resultDirImg + img);
+		
+		// Close all windows
+		Ext.Manager3D_Close();
 		close("*");
     }
 }
 
+//print("\n - Analysis done! -");
 setBatchMode(false);
-		
-		
-
-

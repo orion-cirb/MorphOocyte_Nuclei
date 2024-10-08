@@ -3,28 +3,28 @@
 * **Developed by:** Thomas
 * **Developed for:** Elvira
 * **Team:** Verlhac
-* **Date:** September/October 2024
+* **Date:** October 2024
 * **Software:** Fiji
 
 
 ### Images description
 
-3D images of oocyte.
+3D images of oocytes nuclei.
 
-1 channel: 
+1 channel: nuclear envelope
 
 ### Plugin description
 
-* Segment oocyte using stack sum projection + background noise subtraction + median filtering + Otsu thresholding
-* Estimate background noise as mean + standard deviation intensity of stack sum projection
-* Use the 3D Suite plug-in to watershed oocyte, labeling them and filter by volume
-* Compute 3 ROIs for each oocyte, one at the centroid (determined by 3D), one 3 slices up and one 3 slices down
-* For each obtained ROI, compute area + Perimeter + Circularity + Radius measured on the 3 slices
+* Estimate background noise as [(intensity mean + standard deviation)/slices number] of stack sum projection
+* Segment oocytes nuclei using background noise subtraction + median filtering + Otsu thresholding + fill holes
+* Use the 3D ImageJ Suite plugin to perform a 3D watershed to separate nuclei, label them and filter them by volume to retain only relevant ones
+* Compute 3 ROIs for each oocyte nucleus: one at the nucleus centroid along z-slices, one 3 slices above and one 3 slices below
+* For each obtained ROI, compute area + perimeter + circularity + Feret max and min diameters
 
 ### Dependencies
 
-3D Suite plug-in
+**3D ImageJ Suite** Fiji plugin
 
 ### Version history
 
-Version 1 released on October 03, 2024.
+Version 1 released on October 8, 2024.
