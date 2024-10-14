@@ -11,7 +11,7 @@ inputDir = getDirectory("Please select a directory containing images to analyze"
 
 // Create results directory
 getDateAndTime(year, month, dayOfWeek, dayOfMonth, hour, minute, second, msec);
-resultDir = inputDir + "Results_" + year + "-" + month + "-" + (dayOfMonth+1) + "_" + hour + "-" + minute + "-" + second + File.separator();
+resultDir = inputDir + "Results_" + year + "-" + (month+1) + "-" + dayOfMonth + "_" + hour + "-" + minute + "-" + second + File.separator();
 if (!File.isDirectory(resultDir)) {
 	File.makeDirectory(resultDir);
 }
@@ -26,7 +26,7 @@ print(fileResults, "Image name, Nucleus ID, Slice, ROI name, Area (µm2), Perime
 // Loop through all files with .TIF extension
 for (i = 0; i < inputFiles.length; i++) {
     if (endsWith(inputFiles[i], ".tif")) {
-    	//print("\n - Analyzing image " + inputFiles[i] + " -");
+    	print("\n - Analyzing image " + inputFiles[i] + " -");
     	
 		// Open image
     	open(inputDir + inputFiles[i]);
@@ -59,7 +59,6 @@ for (i = 0; i < inputFiles.length; i++) {
 		run("Properties...", "pixel_width="+voxWidth+" pixel_height="+voxHeight+" voxel_depth="+voxDepth);
 		rename("watershed");
 		
-		
 		// Initialize 3D Manager
 		run("3D Manager");
 		Ext.Manager3D_Reset();
@@ -85,8 +84,6 @@ for (i = 0; i < inputFiles.length; i++) {
 				
 				// Do a manual thresholding based on object label
 				selectImage("watershed");
-				
-
 				run("Manual Threshold...", "min="+labels[j]+" max="+labels[j]);
 				
 				// Create 3 ROIs according to the z-centroid of the object (z-3, z, z+3)
@@ -124,5 +121,5 @@ for (i = 0; i < inputFiles.length; i++) {
     }
 }
 
-//print("\n - Analysis done! -");
+print("\n - Analysis done! -");
 setBatchMode(false);
