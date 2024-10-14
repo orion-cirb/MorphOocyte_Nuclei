@@ -27,4 +27,4 @@
 
 ### Version history
 
-Version 1 released on October 8, 2024.
+Version 1 released on October 14, 2024.
