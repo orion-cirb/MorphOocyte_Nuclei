@@ -21,7 +21,7 @@ inputFiles = getFileList(inputDir);
 
 // Create a file named "results.csv" and write headers in it
 fileResults = File.open(resultDir + "results.csv");
-print(fileResults, "Image name, Nucleus ID, Slice, ROI name, Area (µm2), Perimeter (µm), Circularity, Feret max diameter (µm), Feret min diameter (µm)\n");
+print(fileResults, "Image name, Nucleus ID, Volume3D (µm3), Slice, ROI name, Area (µm2), Perimeter (µm), Circularity, Feret max diameter (µm), Feret min diameter (µm)\n");
 
 // Loop through all files with .TIF extension
 for (i = 0; i < inputFiles.length; i++) {
@@ -106,7 +106,7 @@ for (i = 0; i < inputFiles.length; i++) {
 					List.clear();
 					
 					// Save ROI parameters into the "result.csv" file
-					print(fileResults, inputFiles[i]+","+nucleiCounter+","+slice+","+roiName+","+area+","+perim+","+circ+","+maxDiam+","+minDiam+"\n");
+					print(fileResults, inputFiles[i]+","+nucleiCounter+","+ vols[j] +","+slice+","+roiName+","+area+","+perim+","+circ+","+maxDiam+","+minDiam+"\n");
 				}
 			}
 		}
