@@ -21,7 +21,7 @@ inputFiles = getFileList(inputDir);
 
 // Create a file named "results.csv" and write headers in it
 fileResults = File.open(resultDir + "results.csv");
-print(fileResults, "Image name, Nucleus ID, Volume3D (µm3), Slice, ROI name, Area (µm2), Perimeter (µm), Circularity, Feret max diameter (µm), Feret min diameter (µm)\n");
+print(fileResults, "Image name, Nucleus ID, Volume3D (µm3),Sphericity, Slice, ROI name, Area (µm2), Perimeter (µm), Circularity, Feret max diameter (µm), Feret min diameter (µm)\n");
 
 // Loop through all files with .TIF extension
 for (i = 0; i < inputFiles.length; i++) {
@@ -65,14 +65,17 @@ for (i = 0; i < inputFiles.length; i++) {
 		// Load segmentation result into 3D Manager
 		Ext.Manager3D_AddImage();
 		// Measure objects volume and centroid
-		run("3D Manager Options", "volume centroid_(pix) distance_between_centers=10 distance_max_contact=1.80 drawing=Contour display");
+		run("3D Manager Options", "volume compactness integrated_density centroid_(pix) distance_between_centers=10 distance_max_contact=1.80 drawing=Contour display");
 		Ext.Manager3D_Measure();
-		nbObjs = nResults; labels = newArray(nResults); vols = newArray(nResults); cZs = newArray(nResults);
+		nbObjs = nResults; labels = newArray(nResults); vols = newArray(nResults); cZs = newArray(nResults); spher = newArray(nResults);
 		for (j = 0; j < nbObjs; j++) {
 			labels[j] = getResult("Label", j);
 			cZs[j] = Math.round(getResult("CZ (pix)", j));
 			vols[j] = getResult("Vol (unit)", j);
+			spher[j] = getResult("Spher (unit)", j);
 		}
+    
+
 		close("MeasureTable");
 		close("Results");
 		
@@ -106,7 +109,7 @@ for (i = 0; i < inputFiles.length; i++) {
 					List.clear();
 					
 					// Save ROI parameters into the "result.csv" file
-					print(fileResults, inputFiles[i]+","+nucleiCounter+","+ vols[j] +","+slice+","+roiName+","+area+","+perim+","+circ+","+maxDiam+","+minDiam+"\n");
+					print(fileResults, inputFiles[i]+","+nucleiCounter+","+ vols[j] +","+ spher[j] +","+slice+","+roiName+","+area+","+perim+","+circ+","+maxDiam+","+minDiam+"\n");
 				}
 			}
 		}
