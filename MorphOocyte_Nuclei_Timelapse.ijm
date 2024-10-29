@@ -45,23 +45,26 @@ for (i = 0; i < inputFiles.length; i++) {
 		// Identify ROIs with area ≥ 300 µm² and circularity ≥ 0.5, add to ROI Manager
 		run("Analyze Particles...", "size=300-Infinity circularity=0.50-1.00 clear add stack");
 		
-		// Retain only selected ROIs, clearing the rest of the image
+		// Retain only selected objects, clearing the rest of objects in the image
 		for (roi=0 ; roi < roiManager("count"); roi++){	
 			roiManager("Select", roi);
 			run("Add Selection...");
 			run("Clear Outside", "slice");
 		}
+
+		// Clear ROI Manager
 		roiManager("reset");
 		
-		// Compute measurements for current ROI (area, perimeter, circularity, feret diameters)
+        // Analyze every 10th frame
 		for(slice=1; slice <= nSlices; slice+=10) {
+		    // Add current ROI to ROI Manager
 			setSlice(slice);
 			run("Create Selection");
 			roiManager("Add");
 			roiManager("select", roiManager("count")-1);
 			roiName = Roi.getName;
 			
-			// Compute ROI parameters
+			// Compute measurements for current ROI
 			run("Set Measurements...", "area perimeter shape feret's redirect=None decimal=0");
 			List.setMeasurements();
 			area = List.getValue("Area");
@@ -75,11 +78,11 @@ for (i = 0; i < inputFiles.length; i++) {
 			print(fileResults, inputFiles[i]+","+slice+","+roiName+","+area+","+perim+","+circ+","+maxDiam+","+minDiam+"\n");
 		}
 		
-		// Save the selected ROIs in a ZIP file for each analyzed image
+		// Save ROIs in ROI Manager in a ZIP file for each analyzed image
 		roiManager("save", resultDir + replace(inputFiles[i], "tif", "zip"));
 		roiManager("reset");
 		
-		// Close all open windows to prepare for next file
+		// Close all open windows
 		close("*");
     }
 }
