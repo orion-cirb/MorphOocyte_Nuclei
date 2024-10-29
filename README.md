@@ -10,6 +10,7 @@
 ### Images description
 
 **MorphOocyte_Nuclei_ZStack.ijm:** 3D images of oocytes nuclei
+
 **MorphOocyte_Nuclei_Timelapse.ijm:** Timelapse images of an oocyte nucleus
 
 1 channel: nuclear envelope
@@ -34,6 +35,7 @@
 ### Dependencies
 
 **MorphOocyte_Nuclei_ZStack.ijm:** *3D ImageJ Suite* Fiji plugin
+
 **MorphOocyte_Nuclei_Timelapse.ijm:** *GDSC* Fiji plugin
 
 ### Version history
