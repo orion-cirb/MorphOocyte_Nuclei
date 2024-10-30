@@ -56,7 +56,7 @@ for (i = 0; i < inputFiles.length; i++) {
 		roiManager("reset");
 		
         // Analyze every 10th frame
-		for(slice=1; slice <= nSlices; slice+=10) {
+		for(slice=1; slice <= nSlices; slice+=1) {
 		    // Add current ROI to ROI Manager
 			setSlice(slice);
 			run("Create Selection");
