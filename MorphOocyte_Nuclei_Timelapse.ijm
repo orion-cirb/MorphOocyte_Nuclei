@@ -30,16 +30,22 @@ for (i = 0; i < inputFiles.length; i++) {
     	
     	// Open the current image
     	open(inputDir + inputFiles[i]);
+    	
+    	// Subtract background
+		run("Subtract Background...", "rolling=30 sliding stack");
 		
-		// Apply Laplacian of Gaussian filter for nucleus edge enhancement
-   		run("Laplacian of Gaussian", "sigma=6 scale_normalised negate enhance stack");
+		// Apply Difference of Gaussians filter for nucleus edge enhancement
+		run("Difference of Gaussians", "  sigma1=10 sigma2=7 enhance stack");
 		
-		// Use Triangle automatic thresholding to create binary mask of objects
-		setAutoThreshold("Triangle dark no-reset stack");
+		// Use Mean automatic thresholding to create binary mask of objects
+		setAutoThreshold("Mean dark");
 		setOption("BlackBackground", true);
-		run("Convert to Mask", "method=Triangle background=Dark black");
+		run("Convert to Mask", "method=Mean background=Dark calculate black");
 		
-		// Fill holes within segmented objects for cleaner boundaries
+		// Apply closing filter to connect gaps within segmented objects
+		run("Options...", "iterations=4 count=1 black do=Close stack");
+		
+		// Fill holes for cleaner boundaries within segmented objects
 		run("Fill Holes", "stack");
 		
 		// Identify ROIs with area ≥ 300 µm² and circularity ≥ 0.5, add to ROI Manager
@@ -55,8 +61,8 @@ for (i = 0; i < inputFiles.length; i++) {
 		// Clear ROI Manager
 		roiManager("reset");
 		
-        // Analyze every 10th frame
-		for(slice=1; slice <= nSlices; slice+=1) {
+        // Analyze every frame
+		for(slice=1; slice <= nSlices; slice++) {
 		    // Add current ROI to ROI Manager
 			setSlice(slice);
 			run("Create Selection");
