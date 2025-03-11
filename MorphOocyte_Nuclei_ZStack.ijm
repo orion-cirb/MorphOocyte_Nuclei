@@ -27,9 +27,12 @@ print(fileResults, "Image name,Nucleus ID,Volume (µm3),Sphericity,Slice,ROI nam
 for (i = 0; i < inputFiles.length; i++) {
     if (endsWith(inputFiles[i], ".tif")) {
     	print("\n - Analyzing image " + inputFiles[i] + " -");
+    	roiManager("reset");
     	
 		// Open image
     	open(inputDir + inputFiles[i]);
+    	getDimensions(width, height, channels, slices, frames)
+    	run("Properties...", "channels=1 slices="+maxOf(slices, frames);+" frames=1 pixel_width=0.1135 pixel_height=0.1135 voxel_depth=1");
     	getVoxelSize(voxWidth, voxHeight, voxDepth, voxUnit);
     	rename("raw_image");
 
@@ -46,7 +49,7 @@ for (i = 0; i < inputFiles.length; i++) {
 		run("Subtract...", "value=" + bgNoise +" stack");
 		
 		// Median filter to smooth signal
-		run("Median...", "radius=1 stack");
+		run("Median...", "radius=5 stack");
 		// Automatic thresholding using Otsu method to segment object
 		setAutoThreshold("Otsu dark no-reset stack");
 		setOption("BlackBackground", true);
@@ -85,7 +88,7 @@ for (i = 0; i < inputFiles.length; i++) {
 				
 				// Do a manual thresholding based on object label
 				selectImage("watershed");
-				run("Manual Threshold...", "min="+labels[j]+" max="+labels[j]);
+				run("Manual Threshold", "min="+labels[j]+" max="+labels[j]);
 				
 				// Create 3 ROIs according to the z-centroid of the object (z-3, z, z+3)
 				for(k=-3; k <= 3; k+=3) {
